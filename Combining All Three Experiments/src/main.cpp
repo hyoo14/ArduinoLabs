@@ -3,7 +3,8 @@
 
 // put function declarations here:
 // int myFunction(int, int);
-int pin = 8; //Pin LED is attached to 
+int pin = 11; //8; //Pin LED is attached to 
+int pin2 = 10;
 char temp;
 
 void setup() {
@@ -13,8 +14,9 @@ void setup() {
 }
 
 Morse morse(pin);
+Morse morse2(pin2);
 
-int blinkMorse();
+int blinkMorse(String);
 int turnLED(int);
 
 // void loop() {
@@ -47,8 +49,13 @@ void loop() {
         String command = Serial.readStringUntil('\n');
         command.trim();
 
-        if (command == "blink") {
-            blinkMorse();
+        if (command.startsWith("blink")) {//if (command == "blink") {
+            int spaceIndex = command.indexOf(' ');
+            
+            if(spaceIndex != -1) {
+                String valueStr = command.substring(spaceIndex + 1);                
+                blinkMorse(valueStr);
+            }
         } else if (command.startsWith("turn")) {
             int spaceIndex = command.indexOf(' ');
             if(spaceIndex != -1) {
@@ -60,7 +67,13 @@ void loop() {
     }
 }
 
-int blinkMorse() {
+int blinkMorse(String value) {
+    if( value.startsWith("red") ){
+        morse = morse;
+    }
+    else{
+        morse = morse2;
+    }
     morse.dot(); morse.dot(); morse.dot();
     morse.dash(); morse.dash(); morse.dash();
     morse.dot(); morse.dot(); morse.dot();
@@ -70,7 +83,7 @@ int blinkMorse() {
 }
 
 int turnLED(int value) {
-    analogWrite(pin, value);
+    analogWrite(pin2, value);
     String sm = "Received Input: " + String(value);
     Serial.println(sm);
     delay(2000);
