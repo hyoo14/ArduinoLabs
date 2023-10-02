@@ -49,15 +49,20 @@ void loop() {
 int blinkMorse(String value) {
     if( value.startsWith("red") ){
         morse = morse;
+        Serial.println("blink red");
     }
     else if( value.startsWith("yellow") ){
         morse = morse2;
+        Serial.println("blink yellow");
+        
     }
     else if( value.startsWith("green") ){
         morse = morse3;
+        Serial.println("blink green");
     }
     else{
         morse = morse4;
+        Serial.println("blink blue");
     }
     morse.dot(); morse.dot(); morse.dot();
     morse.dash(); morse.dash(); morse.dash();
