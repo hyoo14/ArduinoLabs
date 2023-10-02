@@ -6,6 +6,7 @@
 int pin = 11; //8; //Pin LED is attached to 
 int pin2 = 10;
 int pin3 = 9;
+int pin4 = 8;
 char temp;
 
 void setup() {
@@ -17,6 +18,7 @@ void setup() {
 Morse morse(pin);
 Morse morse2(pin2);
 Morse morse3(pin3);
+Morse morse4(pin4);
 
 int blinkMorse(String);
 int turnLED(int);
@@ -48,11 +50,14 @@ int blinkMorse(String value) {
     if( value.startsWith("red") ){
         morse = morse;
     }
-    else if( value.startsWith("blue") ){
+    else if( value.startsWith("yellow") ){
         morse = morse2;
     }
-    else{
+    else if( value.startsWith("green") ){
         morse = morse3;
+    }
+    else{
+        morse = morse4;
     }
     morse.dot(); morse.dot(); morse.dot();
     morse.dash(); morse.dash(); morse.dash();
