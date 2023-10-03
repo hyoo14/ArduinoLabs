@@ -3,10 +3,10 @@
 
 // put function declarations here:
 // int myFunction(int, int);
-int pin = 11; //8; //Pin LED is attached to 
-int pin2 = 10;
-int pin3 = 9;
-int pin4 = 8;
+int pin = 8;//11; //8; //Pin LED is attached to 
+int pin2 = 7;//10;
+int pin3 = 6;//9;
+int pin4 = 5;//8;
 char temp;
 
 void setup() {
@@ -50,6 +50,7 @@ int blinkMorse(String value) {
     if( value.startsWith("red") ){
         morse = morse;
         Serial.println("blink red");
+        Serial.println(value);
     }
     else if( value.startsWith("yellow") ){
         morse = morse2;
@@ -73,7 +74,7 @@ int blinkMorse(String value) {
 }
 
 int turnLED(int value) {
-    analogWrite(pin, value);
+    analogWrite(pin4, value);
     String sm = "Received Input: " + String(value);
     Serial.println(sm);
     delay(2000);
