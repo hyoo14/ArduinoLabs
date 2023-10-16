@@ -1,30 +1,16 @@
 #include "DigiPin.h"
-#include <Arduino.h>
 
-Pin::Pin(int p) : pin(p) {
-    pinMode(pin, OUTPUT);
+DigitalPin::DigitalPin(int pin) : pinNumber(pin) {
+    pinMode(pinNumber, OUTPUT);
+    digitalWrite(pinNumber, LOW);
 }
 
-void Pin::set_TCCRA() {
-    // dummy implementation, you need to set actual values
-}
-
-void Pin::set_TCCRB(int wgm, int cs1, int cs0) {
-    // dummy implementation, you need to set actual values
-}
-
-void Pin::set_TCNT() {
-    // dummy implementation, you need to reset the timer count or set a specific value
-}
-
-void Pin::set_OCR(int value) {
-    // dummy implementation, set Output Compare Register value
-}
-
-void Pin::set_TIMSK(int value) {
-    // dummy implementation, set Timer Interrupt Mask Register
-}
-
-void Pin::factor_OCR(int factor) {
-    // dummy implementation, modify the Output Compare Register with a factor
+void DigitalPin::setTCCRA(uint8_t value) { TCCR1A = value; }
+void DigitalPin::setTCCRB(uint8_t value) { TCCR1B = value; }
+void DigitalPin::setTCNT(uint16_t value) { TCNT1 = value; }
+void DigitalPin::setOCR(uint16_t value) { OCR1A = value; }
+void DigitalPin::factorOCR(float factor) { OCR1A = (uint16_t)(OCR1A * factor); }
+void DigitalPin::setTIMSK(uint8_t value) { TIMSK1 = value; }
+int DigitalPin::getPin() const {
+    return pinNumber;
 }

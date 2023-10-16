@@ -1,80 +1,49 @@
-#include <Arduino.h>
+#include "DigiPin.h"
+#include "Safe.h"
 
-int password;
-int error = 0;
-int led0 = 8;
-int tog0;
+DigitalPin led(8);
+Safe safe;
 
 void setup() {
-  
-  Serial.begin(9600);
+    Serial.begin(9600);
 
-  randomSeed(analogRead(0));
-  password = random(10);  // Generate a random number between 0 and 9
-  Serial.print("password: ");
-  Serial.println(password);
+    led.setTCCRA(0);
+    led.setTCCRB((1 << WGM12) | (1 << CS12) | (1 << CS10));
+    led.setTCNT(0);
+    led.setOCR(15624);  // Default for 1Hz
+    led.setTIMSK(1 << OCIE1A);
 
-  pinMode(led0, OUTPUT);
-  digitalWrite(led0, LOW);
-
-  noInterrupts();  // disable all interrupts
-
-  // Timer 1 init to 1Hz
-  TCCR1A = 0;
-  TCCR1B = 0;
-  TCNT1 = 0;
-  OCR1A = 15624;  // OCR1A = 16M / (1Hz * 1024) -1 ;
-  TCCR1B |= (1 << WGM12);  // WGM1
-  TCCR1B |= (1 << CS12) | (0 << CS11) | (1 << CS10);  // prescalar value = 1024;
-  TIMSK1 |= (1 << OCIE1A);  // enable overflow flag
-
-  interrupts();  // enable all interrupts
+    noInterrupts();  
+    interrupts();  
 }
-int attempt = 3;
 
-void loop() {  
-  
-  while( attempt > 0 && Serial.available()){
-    Serial.print("in the while loop, remaining attempt: ");
-    Serial.println(attempt);   
-    
-      
-    String inputStr = Serial.readStringUntil('\n');
-    int userInput = inputStr.toInt();
-    
-    Serial.println(userInput);
-    attempt-=1;
+int attempts = 3;
 
-    if (userInput == password) {
-      Serial.println("in the Second if statement");
-      tog0 = 1;
-      Serial.println("UNLOCKED\n");
-      attempt = 0;
-      break;
-    }  
-    
-    Serial.print("REMAINING attempt: ");
-    Serial.println(attempt);
+void loop() {
+    while(attempts > 0 && Serial.available()) {
+        String inputStr = Serial.readStringUntil('\n');
+        int userInput = inputStr.toInt();
 
+        Serial.println(userInput);
+        attempts--;
 
-    if (attempt == 2) {
-      OCR1A = 3124;
-      tog0 = 0;
+        if(userInput == safe.getPassword()) {
+            led.setOCR(0);  // Turn off LED indicating success
+            Serial.println("UNLOCKED\n");
+            attempts = 0;  // Reset attempts to exit loop
+            break;
+        } else {
+            if (attempts == 2) led.factorOCR(0.2);  // Reduce frequency
+            if (attempts == 1) led.factorOCR(0.5);  // Further reduce frequency
+        }
+
+        Serial.print("REMAINING attempt: ");
+        Serial.println(attempts);
+        if(attempts == 0) Serial.println("ERROR: No attempt left");
     }
-    if (attempt == 1) {
-      OCR1A = 624;
-      tog0 = 0;
-    }      
-    if (attempt == 0) Serial.println("ERROR: No attempt left");  
-
-  }// end of while loop
-  
-}// end of loop function
+    delay(1000);  // Wait for 1 second
+}
 
 ISR(TIMER1_COMPA_vect) {
-  if (tog0 == 1) digitalWrite(led0, LOW);  // correct key
-  else {
-    if (error) digitalWrite(led0, HIGH);
-    else digitalWrite(led0, !digitalRead(led0));  // blinks when wrong
-  }
+    digitalWrite(led.getPin(), !digitalRead(led.getPin()));  // Toggle LED
 }

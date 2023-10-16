@@ -1,19 +1,23 @@
 #ifndef DIGIPIN_H
 #define DIGIPIN_H
 
-class Pin {
-public:
-    explicit Pin(int p);
+#include <Arduino.h>
 
-    void set_TCCRA();
-    void set_TCCRB(int wgm, int cs1, int cs0);
-    void set_TCNT();
-    void set_OCR(int value);
-    void set_TIMSK(int value);
-    void factor_OCR(int factor);
+class DigitalPin {
+public:
+    DigitalPin(int pin);
+    
+    void setTCCRA(uint8_t value);
+    void setTCCRB(uint8_t value);
+    void setTCNT(uint16_t value);
+    void setOCR(uint16_t value);
+    void factorOCR(float factor);
+    void setTIMSK(uint8_t value);
+    int getPin() const;
+
 
 private:
-    int pin;
+    int pinNumber;
 };
 
 #endif
