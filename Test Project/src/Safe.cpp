@@ -1,26 +1,13 @@
-#include <Arduino.h>
-#include "safe.h"
-#include <time.h>
+#include "Safe.h"
 
-// put function declarations here:
-Safe::Safe(){
-  srand( time (NULL));
-  int randomNumber = rand() % 1000;
-  sprintf(_passcode, "%04d", randomNumber);
+Safe::Safe() {
+   // Serial.begin(9600);
+    //randomSeed(analogRead(0));
+    //password = random(100);
+    //Serial.print("password: ");
+    //Serial.println(password);
 }
 
-void Safe::compareCode(int *buf, String entry){
-  char entryChars[5];
-  entry.toCharArray(entryChars,5,0);
-  for(int i=0; i<4; i++){
-    if(entryChars[i]==_passcode[i]) buf[i] = -5;
-    else{
-      buf[i] = buf[i]+1;
-    }
-  }
+int Safe::getPassword() {
+    return password;
 }
-
-char Safe::getChar(int i){
-  return _passcode[i];
-}
-

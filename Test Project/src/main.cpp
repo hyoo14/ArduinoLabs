@@ -1,112 +1,247 @@
+
 #include <Arduino.h>
-#include <string.h>
-#include "DigitalPin.h"
-#include "safe.h"
+//old but might be useful for Lab3
 
-// put function declarations here:
-char temp;
-Safe safe;
-int result[4]={0,0,0,0};
-int attempts = 0;
-// DigitalPin firstLight(11, 0b00100000, &PORTB, &DDRB, &PINB);  //light on timer1
-// DigitalPin secondLight(5, 0b00001000, &PORTE, &DDRE, &PINE);  //light on timer3
-// DigitalPin thirdLight(6, 0b00001000, &PORTH, &DDRH, &PINH);   //light on timer4
-// DigitalPin fourthLight(44, 0b00100000, &PORTL, &DDRL, &PINL);    //light on timer5
-DigitalPin firstLight(11, 0b00100000, &PORTB, &DDRB, &PINB);  //light on timer1
-DigitalPin secondLight(10, 0b00001000, &PORTE, &DDRE, &PINE);  //light on timer3
-DigitalPin thirdLight(9, 0b00001000, &PORTH, &DDRH, &PINH);   //light on timer4
-DigitalPin fourthLight(8, 0b00100000, &PORTL, &DDRL, &PINL);    //light on timer5
+//int user;
+//int user_arr[4];
+//int pass[4];
 
+//flag to be used after all attempts are used
+int error = 0;
+
+//intialize userInput
+int userInput;
+
+//pins the LEDs are plugged in 
+const int led0_pin = 8;
+const int led1_pin = 9;
+const int led2_pin = 10;
+const int led3_pin = 11;
+
+//ints used to toggle LEDs on and off
+int tog0, tog1, tog2, tog3, password;
+int p_oneths, p_tenths, p_hundredths, p_thousandths;
 void setup() {
-  // put your setup code here, to run once: 
+  //begins serial monitor
   Serial.begin(9600);
-  //timer 1
-  noInterrupts();  
-  firstLight.set_TCCRA(&TCCR1A,0b10000000);
-  firstLight.set_TCCRB(&TCCR1B,0b00001100);
-  firstLight.set_TCNT(&TCNT1,0);
-  firstLight.set_OCR(&OCR1A,62499);
-  firstLight.set_TIMSK(&TIMSK1, 0b00000010);
-  //timer3
-  secondLight.set_TCCRA(&TCCR3A,0b10000000);
-  secondLight.set_TCCRB(&TCCR3B,0b00001100);
-  secondLight.set_TCNT(&TCNT3,0);
-  secondLight.set_OCR(&OCR3A,62499);
-  secondLight.set_TIMSK(&TIMSK3, 0b00000010);
-  //timer4
-  thirdLight.set_TCCRA(&TCCR4A,0b10000000);
-  thirdLight.set_TCCRB(&TCCR4B,0b00001100);
-  thirdLight.set_TCNT(&TCNT4,0);
-  thirdLight.set_OCR(&OCR4A,62499);
-  thirdLight.set_TIMSK(&TIMSK4, _BV(OCIE4A));
-  //timer5
-  fourthLight.set_TCCRA(&TCCR5A,0b10000000);
-  fourthLight.set_TCCRB(&TCCR5B,0b00001100);
-  fourthLight.set_TCNT(&TCNT5,0);
-  fourthLight.set_OCR(&OCR5A,62499);
-  fourthLight.set_TIMSK(&TIMSK5, 0b00000010);
 
-  Serial.print("\nHere is the passcode(FOR TESTING/GRADING): ");
-  for(int i = 0; i < 4; i++) Serial.print(safe.getChar(i));
-  Serial.print("\n");
-  sei();
-  interrupts();  
+//generates random number between 1000-9999
+  randomSeed(analogRead(0));
+  //password = random(1000,9999);
+  password = 2431;//9132;
+  Serial.print("password: ");
+  Serial.println(password);
+  
+//splits the random password into individual digits
+p_oneths  = (password / 1U) % 10;
+p_tenths  = (password / 10U) % 10;
+p_hundredths  = (password / 100U) % 10;
+p_thousandths = (password / 1000U) % 10;
+   
+  //intializes pins to be used for output
+  pinMode(led0_pin, OUTPUT);
+  digitalWrite(led0_pin, LOW);
+  
+  pinMode(led1_pin, OUTPUT);
+  digitalWrite(led1_pin, LOW);
+
+  pinMode(led2_pin, OUTPUT);
+  digitalWrite(led2_pin, LOW);
+
+  pinMode(led3_pin, OUTPUT);
+  digitalWrite(led3_pin, LOW);
+
+
+  noInterrupts(); 
+  //Timer 1 init to 1Hz
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1 = 0;
+  OCR1A = 15624; 
+  TCCR1B |= (1 << WGM12); 
+  TCCR1B |= (1 << CS12) | (0 << CS11) | (1 << CS10); 
+  TIMSK1 |= (1 << OCIE1A); 
+
+  //Timer 2 init to 1Hz
+  TCCR5A = 0;
+  TCCR5B = 0;
+  TCNT5 = 0;
+  OCR5A = 15624;
+  TCCR5B |= (1 << WGM52);
+  TCCR5B |= (1 << CS52) | (0 << CS51) | (1 << CS50);
+  TIMSK5 |= (1 << OCIE5A);
+  
+  //Timer 3 init to 1Hz
+  TCCR3A = 0;
+  TCCR3B = 0;
+  TCNT3 = 0;
+  OCR3A = 15624;
+  TCCR3B |= (1 << WGM32); 
+  TCCR3B |= (1 << CS32) | (0 << CS31) | (1 << CS30);
+  TIMSK3 |= (1 << OCIE3A); 
+
+  //Timer 4 init to 1Hz
+  TCCR4A = 0;
+  TCCR4B = 0;
+  TCNT4 = 0;
+  OCR4A = 15624;
+  TCCR4B |= (1 << WGM42); 
+  TCCR4B |= (1 << CS42) | (0 << CS41) | (1 << CS40);
+  TIMSK4 |= (1 << OCIE4A); 
+
+  interrupts(); 
 }
 
+int attempt = 3;
+
+void loop() {
+    while (attempt > 0 && Serial.available()) {
+        Serial.print("in the while loop, remaining attempt: ");
+        Serial.println(attempt);   
+
+        String inputStr = Serial.readStringUntil('\n');
+        int userInput = inputStr.toInt();
+
+        int d_oneths = (userInput / 1U) % 10; 
+        int d_tenths = (userInput / 10U) % 10;
+        int d_hundredths= (userInput / 100U) % 10; 
+        int d_thousands = (userInput / 1000U) % 10; 
+//Used for trooble shooting: displays the user input as individual digits
+        Serial.print("u_oneths");Serial.println(d_oneths);
+        Serial.print("u_Tenths");Serial.println(d_tenths);
+        Serial.print("u_Hundredths");Serial.println(d_hundredths);
+        Serial.print("u_thousondths");Serial.println(d_thousands);
+        
+
+//used for trooble shooting: displays the password as indivdual digits
+       Serial.print("p_oneths=");Serial.println(p_oneths);
+        Serial.print("p_tenths=");Serial.println(p_tenths);
+        Serial.print("p_hundredths=");Serial.println(p_hundredths);
+        Serial.print("p_thousandths=");Serial.println(p_thousandths);
+        
+
+        Serial.println(userInput);
+        attempt-=1;
+
+         //determins what digits of users attempt was correct and displays what digit
+            if (d_oneths == p_oneths){ 
+            tog0 = 1;
+            Serial.println("oneths correct");
+            }
+
+            if (d_tenths == p_tenths) {
+            tog1 = 1;
+            Serial.println("tenths correct");
+            }
+
+            if (d_hundredths == p_hundredths){
+            tog2 = 1;
+            Serial.println("Hundredths correct");
+            }
+
+            if (d_thousands == p_thousandths){ 
+            tog3 = 1;
+            Serial.println("thousandths correct");
+            }
+
+        //displays amount off attempts remaining
+        Serial.print("REMAINING attempt: ");
+        Serial.println(attempt);
+
+        // used to tell user when entire password was correct 
+        if((d_oneths == p_oneths) && (d_tenths == p_tenths) && (d_hundredths == p_hundredths) && (d_thousands == p_thousandths)){
+        Serial.print("Password Correct"); Serial.println(password);
+        
+        attempt =0;
+        }
+    
+        //displays when user did not guess correct pin after 3 attempts
+        if ((attempt == 0) && (d_oneths != p_oneths) && (d_tenths != p_tenths) && (d_hundredths != p_hundredths) && (d_thousands != p_thousandths)){
+            error = 1;
+            tog0 = 0;
+            tog1 = 0;
+            tog2 = 0;
+            tog3 = 0;
+            Serial.print("ERROR: No attempt left\n");
+            Serial.print("Password was:");
+            Serial.println(password);
+        }
+        else {
+//sets flashing for 2nd attempt
+            if (attempt == 2) {
+                if (d_oneths != p_oneths) {
+                    OCR1A = 3124;
+                    tog0 = 0;
+                }
+                if (d_oneths != p_tenths) {
+                    OCR5A = 3124;
+                    tog1 = 0;
+                }
+                if (d_hundredths != p_hundredths){
+                  OCR3A = 3124;
+                  tog2 = 0;
+                }
+                
+                if (d_thousands != p_thousandths) {
+                    OCR4A = 3124;
+                    tog3 = 0;
+                }
+
+        //sets flashing for 1st attempt
+                if (attempt == 1) {
+              
+                }      if (d_oneths != p_oneths) {
+                    OCR1A = 624;
+                    tog0 = 0;
+                }
+                if (d_tenths != p_tenths) {
+                    OCR5A = 624;
+                    tog1 = 0;
+                }
+                if (d_hundredths != p_hundredths){
+                  OCR3A = 624;
+                  tog2 = 0;
+                }
+               
+                
+                if (d_thousands  != p_thousandths) {
+                    OCR4A = 624;
+                    tog3 = 0;
+                }
+
+            }
+        }
+    }
+    }
+
 ISR(TIMER1_COMPA_vect) {
-  firstLight.invert_pin();  // Toggle the LED state
+  if (tog0 == 1) digitalWrite(led0_pin, LOW);
+  else if (tog0 == 0) {
+    if (error) digitalWrite(led0_pin, HIGH);
+    else digitalWrite(led0_pin, !digitalRead(led0_pin));
+  }
 }
 
 ISR(TIMER3_COMPA_vect) {
-  secondLight.invert_pin();  // Toggle the LED state
+  if (tog1 == 1) digitalWrite(led1_pin, LOW);
+  else if (tog1 == 0) {
+    if (error) digitalWrite(led1_pin, HIGH);
+    else digitalWrite(led1_pin, !digitalRead(led1_pin));
+  }
+}
+ISR(TIMER5_COMPA_vect) {
+  if (tog2 == 1) digitalWrite(led2_pin, LOW);
+  else if (tog2 == 0) {
+    if (error) digitalWrite(led2_pin, HIGH);
+    else digitalWrite(led2_pin, !digitalRead(led2_pin));
+  }
 }
 
 ISR(TIMER4_COMPA_vect) {
-  thirdLight.invert_pin();  // Toggle the LED state
-}
-
-ISR(TIMER5_COMPA_vect) {
-  fourthLight.invert_pin();  // Toggle the LED state
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-  String resultString;
-  
-  while (Serial.available()>0){
-    String userInput = Serial.readString();
-    while (Serial.available()>0){
-      temp = Serial.read();
-    }
-    safe.compareCode(result,userInput);
-    
-    if(++attempts >= 5){
-      firstLight.on();
-      firstLight.set_TCCRB(&TCCR1B, ~_BV(CS12) | ~_BV(CS11) | ~_BV(CS10));
-      secondLight.on();
-      secondLight.set_TCCRB(&TCCR3B, ~_BV(CS32) | ~_BV(CS31) | ~_BV(CS30));
-      thirdLight.on();
-      thirdLight.set_TCCRB(&TCCR4B, ~_BV(CS42) | ~_BV(CS41) | ~_BV(CS40));
-      fourthLight.on();
-      fourthLight.set_TCCRB(&TCCR5B, ~_BV(CS52) | ~_BV(CS51) | ~_BV(CS50));
-    }
-
-    if(result[0] <= -1){
-      firstLight.set_TCCRB(&TCCR1B, ~_BV(CS12) | ~_BV(CS11) | ~_BV(CS10));
-      firstLight.off();
-    } else { firstLight.factor_OCR(&OCR1A,0.5);}
-    if(result[1] <= -1){
-      secondLight.set_TCCRB(&TCCR3B, ~_BV(CS32) | ~_BV(CS31) | ~_BV(CS30));
-      secondLight.off();
-    } else {secondLight.factor_OCR(&OCR3A,0.5);}
-    if(result[2] <= -1){
-      thirdLight.set_TCCRB(&TCCR4B, ~_BV(CS42) | ~_BV(CS41) | ~_BV(CS40));
-      thirdLight.off();
-    } else {thirdLight.factor_OCR(&OCR4A,0.5);}
-    if(result[3] <= -1){
-      fourthLight.set_TCCRB(&TCCR5B, ~_BV(CS52) | ~_BV(CS51) | ~_BV(CS50));
-      fourthLight.off();
-    } else {fourthLight.factor_OCR(&OCR5A,0.5);}
+  if (tog3 == 1) digitalWrite(led3_pin, LOW);
+  else if (tog3 == 0) {
+    if (error) digitalWrite(led3_pin, HIGH);
+    else digitalWrite(led3_pin, !digitalRead(led3_pin));
   }
-  
 }
+
