@@ -1,23 +1,23 @@
 #include <Arduino.h>
 
 // Pin assignments for the LED and the photoresistor
-int LED_R = 6; 
-int Vdiv_in = A0; 
+int ledPin = 6; 
+int photoresistorPin = A0; 
 
 // Variables used for PWM control and reading the photoresistor's value
-float dcycle_f = 0.0; // Current duty cycle, ranging from 0 to 1
-int photoRead; 
-int RPR = 10000;  // Resistance value of the 10kΩ resistor used in voltage divider
-float dcycle_percent; 
+float currentDutyCycle = 0.0; // Current duty cycle, ranging from 0 to 1
+int photoResistorValue;  // Placeholder for future use if needed
+int fixedResistorValue = 10000;  // Resistance value of the 10kΩ resistor used in voltage divider
+float dutyCyclePercentage; 
 
 void setup() {
   Serial.begin(9600); 
-  Serial.println("Duty Cycle(%), Voltage across R-10k, Voltage across Photoresistor"); 
+  Serial.println("Duty Cycle(%), Voltage across 10kΩ Resistor, Voltage across Photoresistor"); 
 
-  pinMode(LED_R, OUTPUT);  // Set the LED pin as an output
-  pinMode(Vdiv_in, INPUT); // Set the photoresistor pin as an input
+  pinMode(ledPin, OUTPUT);  // Set the LED pin as an output
+  pinMode(photoresistorPin, INPUT); // Set the photoresistor pin as an input
   
-  // Timer configuration: This section contains settings specific to a particular timer on the Arduino board
+  // Timer configuration
   noInterrupts(); // Disable all interrupts for configuration
   TCCR4A = 0b10000010; 
   TCCR4B = 0b00010010; 
@@ -29,24 +29,25 @@ void setup() {
 
 void loop() {
   // Adjust the PWM signal's duty cycle
-  if (dcycle_f > 1.01) {
-    dcycle_f = 0.05;  // Reset duty cycle if it exceeds 1
+  if (currentDutyCycle > 1.01) {
+    currentDutyCycle = 0.05;  // Reset duty cycle if it exceeds 1
   } 
-  OCR4A = (ICR4 * dcycle_f);  // Set the duty cycle for the PWM signal
-  dcycle_percent = dcycle_f * 100;  // Convert duty cycle to percentage
-  dcycle_f += 0.05;  // Increment duty cycle
+  OCR4A = (ICR4 * currentDutyCycle);  // Set the duty cycle for the PWM signal
+  dutyCyclePercentage = currentDutyCycle * 100;  // Convert duty cycle to percentage
+  currentDutyCycle += 0.05;  // Increment duty cycle
 
   delay(2000); // Pause the loop for 2 seconds
   
   // Read the voltage across the photoresistor
-  float RPRvoltage = analogRead(Vdiv_in) * (5.0 / 1023.0);  // Convert analog read value to voltage
-  float RPRcurrent = ((RPRvoltage) / RPR) * 1000000; // Calculate current through the 10kΩ resistor (unused in the code)
-  float photoVoltage = 5 - RPRvoltage; // Calculate voltage across the photoresistor
-  float photoRes = ((5 * RPR) / RPRvoltage) - RPR; // Calculate resistance of the photoresistor (unused in the code)
+  float voltageAcrossFixedResistor = analogRead(photoresistorPin) * (5.0 / 1023.0);  
+  float currentThroughFixedResistor = (voltageAcrossFixedResistor / fixedResistorValue) * 1000000; 
+  float voltageAcrossPhotoresistor = 5 - voltageAcrossFixedResistor; 
+  float resistanceOfPhotoresistor = ((5 * fixedResistorValue) / voltageAcrossFixedResistor) - fixedResistorValue; 
 
   // Print the data to the serial monitor
-  Serial.print(String(dcycle_percent) + ", " + String(RPRvoltage) + ", " + String(photoVoltage) + "\n");
+  Serial.print(String(dutyCyclePercentage) + ", " + String(voltageAcrossFixedResistor) + ", " + String(voltageAcrossPhotoresistor) + "\n");
 }
+
 
 
 // #include <Arduino.h>
