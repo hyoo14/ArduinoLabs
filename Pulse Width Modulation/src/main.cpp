@@ -9,13 +9,41 @@ float currentDutyCycle = 0.0; // Current duty cycle, ranging from 0 to 1
 int photoResistorValue;  // Placeholder for future use if needed
 int fixedResistorValue = 10000;  // Resistance value of the 10kΩ resistor used in voltage divider
 float dutyCyclePercentage; 
+void myPinMode(int pin, int mode) {
+    if (mode == INPUT) {
+        DDRD &= ~(1 << pin);
+    } else if (mode == OUTPUT) {
+        DDRD |= (1 << pin);
+    }
+    // Note: This function assumes the pin is on PORTD for simplicity. 
+    // Depending on your board and which pin you're using, you might need to adjust this.
+}
 
+int myAnalogRead(int pin) {
+    // Set the analog reference to AVCC (5V)
+    ADMUX = (1 << REFS0);
+    
+    // Clear the previously selected channel
+    ADMUX &= 0xF8;
+
+    // Choose the appropriate channel based on the pin number
+    ADMUX |= (pin & 0x07);
+
+    // Start the conversion
+    ADCSRA |= (1 << ADSC);
+
+    // Wait for the conversion to complete
+    while (ADCSRA & (1 << ADSC));
+
+    // Return the ADC value
+    return ADC;
+}
 void setup() {
   Serial.begin(9600); 
   Serial.println("Duty Cycle(%), Voltage across 10kΩ Resistor, Voltage across Photoresistor"); 
 
-  pinMode(ledPin, OUTPUT);  // Set the LED pin as an output
-  pinMode(photoresistorPin, INPUT); // Set the photoresistor pin as an input
+  myPinMode(ledPin, OUTPUT);  // Set the LED pin as an output
+  myPinMode(photoresistorPin, INPUT); // Set the photoresistor pin as an input
   
   // Timer configuration
   noInterrupts(); // Disable all interrupts for configuration
@@ -39,14 +67,69 @@ void loop() {
   delay(2000); // Pause the loop for 2 seconds
   
   // Read the voltage across the photoresistor
-  float voltageAcrossFixedResistor = analogRead(photoresistorPin) * (5.0 / 1023.0);  
+  float voltageAcrossFixedResistor = myAnalogRead(photoresistorPin) * (5.0 / 1023.0);  
   float currentThroughFixedResistor = (voltageAcrossFixedResistor / fixedResistorValue) * 1000000; 
   float voltageAcrossPhotoresistor = 5 - voltageAcrossFixedResistor; 
-  float resistanceOfPhotoresistor = ((5 * fixedResistorValue) / voltageAcrossFixedResistor) - fixedResistorValue; 
 
   // Print the data to the serial monitor
   Serial.print(String(dutyCyclePercentage) + ", " + String(voltageAcrossFixedResistor) + ", " + String(voltageAcrossPhotoresistor) + "\n");
 }
+
+
+
+
+
+// #include <Arduino.h>
+
+// // Pin assignments for the LED and the photoresistor
+// int ledPin = 6; 
+// int photoresistorPin = A0; 
+
+// // Variables used for PWM control and reading the photoresistor's value
+// float currentDutyCycle = 0.0; // Current duty cycle, ranging from 0 to 1
+// int photoResistorValue;  // Placeholder for future use if needed
+// int fixedResistorValue = 10000;  // Resistance value of the 10kΩ resistor used in voltage divider
+// float dutyCyclePercentage; 
+
+// void setup() {
+//   Serial.begin(9600); 
+//   Serial.println("Duty Cycle(%), Voltage across 10kΩ Resistor, Voltage across Photoresistor"); 
+
+//   pinMode(ledPin, OUTPUT);  // Set the LED pin as an output
+//   pinMode(photoresistorPin, INPUT); // Set the photoresistor pin as an input
+  
+//   // Timer configuration
+//   noInterrupts(); // Disable all interrupts for configuration
+//   TCCR4A = 0b10000010; 
+//   TCCR4B = 0b00010010; 
+//   TCNT4 = 0;  // Timer/Counter Register initialization
+//   OCR4A = 0; // Output Compare Register initialization
+//   ICR4 = 400; // Input Capture Register setup
+//   interrupts(); // Re-enable interrupts
+// }
+
+// void loop() {
+//   // Adjust the PWM signal's duty cycle
+//   if (currentDutyCycle > 1.01) {
+//     currentDutyCycle = 0.05;  // Reset duty cycle if it exceeds 1
+//   } 
+//   OCR4A = (ICR4 * currentDutyCycle);  // Set the duty cycle for the PWM signal
+//   dutyCyclePercentage = currentDutyCycle * 100;  // Convert duty cycle to percentage
+//   currentDutyCycle += 0.05;  // Increment duty cycle
+
+//   delay(2000); // Pause the loop for 2 seconds
+  
+//   // Read the voltage across the photoresistor
+//   float voltageAcrossFixedResistor = analogRead(photoresistorPin) * (5.0 / 1023.0);  
+//   float currentThroughFixedResistor = (voltageAcrossFixedResistor / fixedResistorValue) * 1000000; 
+//   float voltageAcrossPhotoresistor = 5 - voltageAcrossFixedResistor; 
+//   float resistanceOfPhotoresistor = ((5 * fixedResistorValue) / voltageAcrossFixedResistor) - fixedResistorValue; 
+
+//   // Print the data to the serial monitor
+//   Serial.print(String(dutyCyclePercentage) + ", " + String(voltageAcrossFixedResistor) + ", " + String(voltageAcrossPhotoresistor) + "\n");
+// }
+
+
 
 
 
