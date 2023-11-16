@@ -1,0 +1,267 @@
+
+classdef app1 < matlab.apps.AppBase
+ 
+% Properties that correspond to app components
+ properties (Access = public)
+ 
+UIFigure 
+matlab.ui.Figure
+ 
+DutyCycleEditField matlab.ui.control.EditField
+ 
+DutyCycleLabel 
+matlab.ui.control.Label
+ 
+StartButton 
+matlab.ui.control.Button
+ 
+UIAxes3 
+matlab.ui.control.UIAxes
+ 
+UIAxes2 
+matlab.ui.control.UIAxes
+ 
+UIAxes 
+matlab.ui.control.UIAxes
+ end
+ 
+% Callbacks that handle component events
+ methods (Access = private)
+ 
+% Button pushed function: StartButton
+ 
+function StartButtonPushed(app, event)
+ 
+% Set up communications with Arduino
+ 
+arduino = serialport("COM5", 9600, "Timeout", 15);
+ 
+pause(1)
+ 
+duty_cycle = 0:0.01:1.0;
+ 
+num_samples = length(duty_cycle);
+ 
+num_points = 255;
+ 
+DC=zeros(1,num_points);
+ 
+% Initialize arrays to store data
+ 
+voltageLed = zeros(1, num_samples);
+ 
+voltagePhotoresistor = zeros(1, num_samples);
+ 
+resistancePhotoresistor = zeros(1, num_samples);
+ 
+currentPhotoresistor = zeros(1, num_samples);
+ 
+for K = 1:num_samples
+ 
+% Request data from Arduino
+ 
+write(arduino, K, 'uint8'
+);
+ 
+ 
+% Read one line of data from Arduino
+ 
+data = readline(arduino);
+ 
+values = str2double(strsplit(data, ',
+'
+)
+);
+ 
+voltageLed(K) = values(1);
+ 
+voltagePhotoresistor(K) = values(2);
+ 
+resistancePhotoresistor(K) = values(3);
+ 
+currentPhotoresistor(K) = values(4);
+ 
+fprintf(
+'Duty Cycle: %.2f, Voltage Led: %.2f, Voltage 
+Photoresistor: %.2f, Resistance Photoresistor: %.2f, Current Photoresistor: 
+%.2f\n', .
+.
+.
+ 
+duty_cycle(K), voltageLed(K), voltagePhotoresistor(K), 
+resistancePhotoresistor(K), currentPhotoresistor(K)
+);
+ 
+dcy = num2str(duty_cycle(K) * 100);
+ 
+app.DutyCycleEditField.Value=(dcy);
+ 
+end
+ 
+% Close the Arduino communication
+ 
+clear arduino;
+ 
+% Plot Photocell Resistance
+ 
+plot(app.UIAxes3, duty_cycle * 100, resistancePhotoresistor, 'bo-',
+'MarkerFaceColor', 'blue'
+);
+ 
+% plot Photocell Current
+ 
+plot(app.UIAxes2, duty_cycle * 100, currentPhotoresistor, 'ro-', 
+'MarkerFaceColor', 'red'
+);
+ 
+% plot Photocell Voltage
+ 
+plot(app.UIAxes, duty_cycle * 100, voltagePhotoresistor, 'go-', 
+'MarkerFaceColor', 'green'
+);
+ 
+end
+ end
+ 
+% Component initialization
+ methods (Access = private)
+ 
+% Create UIFigure and components
+ 
+function createComponents(app)
+ 
+% Create UIFigure and hide until all components are created
+ 
+app.UIFigure = uifigure(
+'Visible', 'off'
+);
+ 
+app.UIFigure.Position = [100 100 640 480];
+ 
+app.UIFigure.Name = 'MATLAB App';
+ 
+% Create UIAxes
+ 
+app.UIAxes = uiaxes(app.UIFigure);
+ 
+title(app.UIAxes, 'Photocell Voltage'
+)
+ 
+xlabel(app.UIAxes, 'X'
+)
+ 
+ylabel(app.UIAxes, 'Y'
+)
+ 
+zlabel(app.UIAxes, 'Z'
+)
+ 
+app.UIAxes.Position = [24 253 275 207];
+ 
+% Create UIAxes2
+ 
+app.UIAxes2 = uiaxes(app.UIFigure);
+ 
+title(app.UIAxes2, 'Current'
+)
+ 
+xlabel(app.UIAxes2, 'X'
+)
+ 
+ylabel(app.UIAxes2, 'Y'
+)
+ 
+zlabel(app.UIAxes2, 'Z'
+)
+ 
+app.UIAxes2.Position = [321 253 275 207];
+ 
+% Create UIAxes3
+ 
+app.UIAxes3 = uiaxes(app.UIFigure);
+ 
+title(app.UIAxes3, 'Photocell Resistance'
+)
+ 
+xlabel(app.UIAxes3, 'X'
+)
+ 
+ylabel(app.UIAxes3, 'Y'
+)
+ 
+zlabel(app.UIAxes3, 'Z'
+)
+ 
+app.UIAxes3.Position = [321 47 275 207];
+ 
+% Create StartButton
+ 
+app.StartButton = uibutton(app.UIFigure, 'push'
+);
+ 
+app.StartButton.ButtonPushedFcn = createCallbackFcn(app, 
+@StartButtonPushed, true);
+ 
+app.StartButton.Position = [68 78 187 56];
+ 
+app.StartButton.Text = 'Start';
+ 
+% Create DutyCycleLabel
+ 
+app.DutyCycleLabel = uilabel(app.UIFigure);
+ 
+app.DutyCycleLabel.HorizontalAlignment = 'right';
+ 
+app.DutyCycleLabel.Position = [68 179 85 22];
+ 
+app.DutyCycleLabel.Text = 'Duty Cycle (%)
+';
+ 
+% Create DutyCycleEditField
+ 
+app.DutyCycleEditField = uieditfield(app.UIFigure, 'text'
+);
+ 
+app.DutyCycleEditField.Position = [168 163 87 53];
+ 
+% Show the figure after all components are created
+ 
+app.UIFigure.Visible = 'on';
+ 
+end
+ end
+ 
+% App creation and deletion
+ methods (Access = public)
+ 
+% Construct app
+ 
+function app = app1
+ 
+% Create UIFigure and components
+ 
+createComponents(app)
+ 
+% Register the app with App Designer
+ 
+registerApp(app, app.UIFigure)
+ 
+if nargout == 0
+ 
+clear app
+ 
+end
+ 
+end
+ 
+% Code that executes before app deletion
+ 
+function delete(app)
+ 
+% Delete UIFigure when app is deleted
+ 
+delete(app.UIFigure)
+ 
+end
+ end
+end
